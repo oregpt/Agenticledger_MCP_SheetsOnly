@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateGetValuesInput } from '../utils/validators.js';
 import { formatValuesResponse } from '../utils/formatters.js';
@@ -10,6 +10,10 @@ export const getValuesTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -29,14 +33,14 @@ export const getValuesTool: Tool = {
         description: 'How values should be represented (default: FORMATTED_VALUE)',
       },
     },
-    required: ['spreadsheetId', 'range'],
+    required: ['accessToken', 'spreadsheetId', 'range'],
   },
 };
 
 export async function handleGetValues(input: any) {
   try {
     const validatedInput = validateGetValuesInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: validatedInput.spreadsheetId,

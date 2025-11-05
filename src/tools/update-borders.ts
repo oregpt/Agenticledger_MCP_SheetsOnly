@@ -1,7 +1,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { sheets_v4 } from 'googleapis';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { formatToolResponse } from '../utils/formatters.js';
 import { UpdateBordersInput, ToolResponse } from '../types/tools.js';
@@ -36,6 +36,7 @@ const bordersSchema = z.object({
 });
 
 const updateBordersInputSchema = z.object({
+  accessToken: z.string(),
   spreadsheetId: z.string(),
   range: z.string(),
   borders: bordersSchema,
@@ -46,8 +47,14 @@ export const updateBordersTool: Tool = {
   description: 'Update borders of cells in a Google Sheet',
   inputSchema: {
     type: 'object',
-    properties: updateBordersInputSchema.shape,
-    required: ['spreadsheetId', 'range', 'borders'],
+    properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
+      ...updateBordersInputSchema.omit({ accessToken: true }).shape,
+    },
+    required: ['accessToken', 'spreadsheetId', 'range', 'borders'],
   },
 };
 
@@ -57,7 +64,7 @@ export async function updateBordersHandler(input: any): Promise<ToolResponse> {
     input.borders = parseJsonInput(input.borders, 'borders');
 
     const validatedInput = updateBordersInputSchema.parse(input) as UpdateBordersInput;
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Extract sheet name and get sheet ID
     const { sheetName, range: cleanRange } = extractSheetName(validatedInput.range);

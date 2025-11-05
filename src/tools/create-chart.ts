@@ -1,6 +1,6 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { sheets_v4 } from 'googleapis';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateCreateChartInput } from '../utils/validators.js';
 import { formatToolResponse } from '../utils/formatters.js';
@@ -15,6 +15,10 @@ export const createChartTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -146,7 +150,7 @@ export const createChartTool: Tool = {
         description: 'Alternative text for accessibility',
       },
     },
-    required: ['spreadsheetId', 'position', 'chartType', 'series'],
+    required: ['accessToken', 'spreadsheetId', 'position', 'chartType', 'series'],
   },
 };
 
@@ -173,7 +177,7 @@ export async function handleCreateChart(input: any): Promise<ToolResponse> {
     }
 
     const validatedInput = validateCreateChartInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Build the chart spec
     const chartSpec: sheets_v4.Schema$ChartSpec = {};

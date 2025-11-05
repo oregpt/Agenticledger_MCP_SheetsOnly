@@ -1,6 +1,6 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { sheets_v4 } from 'googleapis';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateBatchFormatCellsInput } from '../utils/validators.js';
 import { formatToolResponse } from '../utils/formatters.js';
@@ -14,6 +14,10 @@ export const batchFormatCellsTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -37,7 +41,7 @@ export const batchFormatCellsTool: Tool = {
         description: 'Array of format requests, each containing a range and format object',
       },
     },
-    required: ['spreadsheetId', 'formatRequests'],
+    required: ['accessToken', 'spreadsheetId', 'formatRequests'],
   },
 };
 
@@ -52,7 +56,7 @@ export async function handleBatchFormatCells(input: any): Promise<ToolResponse> 
     }
 
     const validatedInput = validateBatchFormatCellsInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Build format requests
     const requests: sheets_v4.Schema$Request[] = [];

@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateBatchDeleteSheetsInput } from '../utils/validators.js';
 import { formatToolResponse } from '../utils/formatters.js';
@@ -11,6 +11,10 @@ export const batchDeleteSheetsTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -23,14 +27,14 @@ export const batchDeleteSheetsTool: Tool = {
         description: 'Array of sheet IDs to delete (use sheets_get_metadata to find sheet IDs)',
       },
     },
-    required: ['spreadsheetId', 'sheetIds'],
+    required: ['accessToken', 'spreadsheetId', 'sheetIds'],
   },
 };
 
 export async function handleBatchDeleteSheets(input: any): Promise<ToolResponse> {
   try {
     const validatedInput = validateBatchDeleteSheetsInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Build delete requests for each sheet
     const requests = validatedInput.sheetIds.map((sheetId) => ({

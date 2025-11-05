@@ -1,6 +1,6 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { sheets_v4 } from 'googleapis';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateUpdateChartInput } from '../utils/validators.js';
 import { formatToolResponse } from '../utils/formatters.js';
@@ -13,6 +13,10 @@ export const updateChartTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -98,7 +102,7 @@ export const updateChartTool: Tool = {
         description: 'Updated alternative text for accessibility (optional)',
       },
     },
-    required: ['spreadsheetId', 'chartId'],
+    required: ['accessToken', 'spreadsheetId', 'chartId'],
   },
 };
 
@@ -125,7 +129,7 @@ export async function handleUpdateChart(input: any): Promise<ToolResponse> {
     }
 
     const validatedInput = validateUpdateChartInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // First, get the current chart to understand what we're updating
     const spreadsheet = await sheets.spreadsheets.get({

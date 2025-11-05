@@ -1,11 +1,12 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { formatToolResponse } from '../utils/formatters.js';
 import { ToolResponse } from '../types/tools.js';
 
 const insertLinkInputSchema = z.object({
+  accessToken: z.string(),
   spreadsheetId: z.string().min(1, 'Spreadsheet ID is required'),
   range: z.string().min(1, 'Range is required'),
   url: z.string().url('Invalid URL format'),
@@ -22,6 +23,10 @@ export const insertLinkTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -51,14 +56,14 @@ export const insertLinkTool: Tool = {
         default: true,
       },
     },
-    required: ['spreadsheetId', 'range', 'url'],
+    required: ['accessToken', 'spreadsheetId', 'range', 'url'],
   },
 };
 
 export async function handleInsertLink(input: any): Promise<ToolResponse> {
   try {
     const validatedInput = insertLinkInputSchema.parse(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Create the display text (use custom text if provided, otherwise use the URL)
     const displayText = validatedInput.text || validatedInput.url;

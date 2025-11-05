@@ -1,7 +1,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { sheets_v4 } from 'googleapis';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { formatToolResponse } from '../utils/formatters.js';
 import { AddConditionalFormattingInput, ToolResponse } from '../types/tools.js';
@@ -108,6 +108,7 @@ const conditionalFormatRuleSchema = z.object({
 });
 
 const addConditionalFormattingInputSchema = z.object({
+  accessToken: z.string(),
   spreadsheetId: z.string(),
   rules: z.array(conditionalFormatRuleSchema),
 });
@@ -117,8 +118,14 @@ export const addConditionalFormattingTool: Tool = {
   description: 'Add conditional formatting rules to a Google Sheet',
   inputSchema: {
     type: 'object',
-    properties: addConditionalFormattingInputSchema.shape,
-    required: ['spreadsheetId', 'rules'],
+    properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
+      ...addConditionalFormattingInputSchema.omit({ accessToken: true }).shape,
+    },
+    required: ['accessToken', 'spreadsheetId', 'rules'],
   },
 };
 
@@ -130,7 +137,7 @@ export async function addConditionalFormattingHandler(input: any): Promise<ToolR
     const validatedInput = addConditionalFormattingInputSchema.parse(
       input
     ) as AddConditionalFormattingInput;
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Process all rules
     const requests: sheets_v4.Schema$Request[] = [];

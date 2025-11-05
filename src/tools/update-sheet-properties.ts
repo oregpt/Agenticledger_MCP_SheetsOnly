@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateUpdateSheetPropertiesInput } from '../utils/validators.js';
 import { formatSheetOperationResponse } from '../utils/formatters.js';
@@ -10,6 +10,10 @@ export const updateSheetPropertiesTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -63,14 +67,14 @@ export const updateSheetPropertiesTool: Tool = {
         description: 'Tab color (RGB values from 0.0 to 1.0)',
       },
     },
-    required: ['spreadsheetId', 'sheetId'],
+    required: ['accessToken', 'spreadsheetId', 'sheetId'],
   },
 };
 
 export async function handleUpdateSheetProperties(input: any) {
   try {
     const validatedInput = validateUpdateSheetPropertiesInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     const updateRequest: any = {
       properties: {

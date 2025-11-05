@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateInsertRowsInput } from '../utils/validators.js';
 import { formatToolResponse } from '../utils/formatters.js';
@@ -11,6 +11,10 @@ export const insertRowsTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -45,7 +49,7 @@ export const insertRowsTool: Tool = {
         description: 'How the input data should be interpreted (default: USER_ENTERED)',
       },
     },
-    required: ['spreadsheetId', 'range'],
+    required: ['accessToken', 'spreadsheetId', 'range'],
   },
 };
 
@@ -67,7 +71,7 @@ function indexToColumn(index: number): string {
 export async function handleInsertRows(input: any) {
   try {
     const validatedInput = validateInsertRowsInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Extract sheet name from range
     const { sheetName, range: cellRange } = extractSheetName(validatedInput.range);

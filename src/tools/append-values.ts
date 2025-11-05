@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateAppendValuesInput } from '../utils/validators.js';
 import { formatAppendResponse } from '../utils/formatters.js';
@@ -13,6 +13,10 @@ export const appendValuesTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -39,14 +43,14 @@ export const appendValuesTool: Tool = {
         description: 'How the input data should be inserted (default: OVERWRITE)',
       },
     },
-    required: ['spreadsheetId', 'range', 'values'],
+    required: ['accessToken', 'spreadsheetId', 'range', 'values'],
   },
 };
 
 export async function handleAppendValues(input: any) {
   try {
     const validatedInput = validateAppendValuesInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: validatedInput.spreadsheetId,

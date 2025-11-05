@@ -1,9 +1,10 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { z } from 'zod';
 
 const CheckAccessSchema = z.object({
+  accessToken: z.string().describe('OAuth access token from platform'),
   spreadsheetId: z.string().describe('The ID of the spreadsheet to check access for'),
 });
 
@@ -14,19 +15,23 @@ export const checkAccessTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet to check access for',
       },
     },
-    required: ['spreadsheetId'],
+    required: ['accessToken', 'spreadsheetId'],
   },
 };
 
 export async function handleCheckAccess(input: any) {
   try {
     const { spreadsheetId } = CheckAccessSchema.parse(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     const permissions = {
       canRead: false,

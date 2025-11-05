@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateCreateSpreadsheetInput } from '../utils/validators.js';
 import { formatSpreadsheetCreatedResponse } from '../utils/formatters.js';
@@ -10,6 +10,10 @@ export const createSpreadsheetTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       title: {
         type: 'string',
         description: 'The title of the new spreadsheet',
@@ -36,14 +40,14 @@ export const createSpreadsheetTool: Tool = {
         description: 'Array of sheets to create in the spreadsheet',
       },
     },
-    required: ['title'],
+    required: ['accessToken', 'title'],
   },
 };
 
 export async function handleCreateSpreadsheet(input: any) {
   try {
     const validatedInput = validateCreateSpreadsheetInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     const requestBody: any = {
       properties: {

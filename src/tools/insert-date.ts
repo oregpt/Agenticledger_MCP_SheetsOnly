@@ -1,11 +1,12 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { formatToolResponse } from '../utils/formatters.js';
 import { ToolResponse } from '../types/tools.js';
 
 const insertDateInputSchema = z.object({
+  accessToken: z.string(),
   spreadsheetId: z.string().min(1, 'Spreadsheet ID is required'),
   range: z.string().min(1, 'Range is required'),
   date: z.string().min(1, 'Date is required'),
@@ -23,6 +24,10 @@ export const insertDateTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -55,7 +60,7 @@ export const insertDateTool: Tool = {
         default: true,
       },
     },
-    required: ['spreadsheetId', 'range', 'date'],
+    required: ['accessToken', 'spreadsheetId', 'range', 'date'],
   },
 };
 
@@ -126,7 +131,7 @@ function formatDateForSheets(date: Date, format: string): string {
 export async function handleInsertDate(input: any): Promise<ToolResponse> {
   try {
     const validatedInput = insertDateInputSchema.parse(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Parse the input date
     const parsedDate = parseDate(validatedInput.date);

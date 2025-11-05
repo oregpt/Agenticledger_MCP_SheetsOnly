@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateBatchGetValuesInput } from '../utils/validators.js';
 import { formatBatchValuesResponse } from '../utils/formatters.js';
@@ -10,6 +10,10 @@ export const batchGetValuesTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -33,14 +37,14 @@ export const batchGetValuesTool: Tool = {
         description: 'How values should be represented (default: FORMATTED_VALUE)',
       },
     },
-    required: ['spreadsheetId', 'ranges'],
+    required: ['accessToken', 'spreadsheetId', 'ranges'],
   },
 };
 
 export async function handleBatchGetValues(input: any) {
   try {
     const validatedInput = validateBatchGetValuesInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     const response = await sheets.spreadsheets.values.batchGet({
       spreadsheetId: validatedInput.spreadsheetId,

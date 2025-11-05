@@ -1,5 +1,5 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { validateBatchUpdateValuesInput } from '../utils/validators.js';
 import { formatUpdateResponse } from '../utils/formatters.js';
@@ -10,6 +10,10 @@ export const batchUpdateValuesTool: Tool = {
   inputSchema: {
     type: 'object',
     properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
       spreadsheetId: {
         type: 'string',
         description: 'The ID of the spreadsheet (found in the URL after /d/)',
@@ -41,14 +45,14 @@ export const batchUpdateValuesTool: Tool = {
         description: 'How the input data should be interpreted (default: USER_ENTERED)',
       },
     },
-    required: ['spreadsheetId', 'data'],
+    required: ['accessToken', 'spreadsheetId', 'data'],
   },
 };
 
 export async function handleBatchUpdateValues(input: any) {
   try {
     const validatedInput = validateBatchUpdateValuesInput(input);
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     const response = await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: validatedInput.spreadsheetId,

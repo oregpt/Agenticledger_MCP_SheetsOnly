@@ -1,7 +1,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { sheets_v4 } from 'googleapis';
-import { getAuthenticatedClient } from '../utils/google-auth.js';
+import { createSheetsClient } from '../utils/platform-oauth.js';
 import { handleError } from '../utils/error-handler.js';
 import { formatToolResponse } from '../utils/formatters.js';
 import { FormatCellsInput, ToolResponse } from '../types/tools.js';
@@ -64,6 +64,7 @@ const cellFormatSchema = z.object({
 });
 
 const formatCellsInputSchema = z.object({
+  accessToken: z.string(),
   spreadsheetId: z.string(),
   range: z.string(),
   format: cellFormatSchema,
@@ -74,8 +75,14 @@ export const formatCellsTool: Tool = {
   description: 'Format cells in a Google Sheet (colors, fonts, alignment, number formats)',
   inputSchema: {
     type: 'object',
-    properties: formatCellsInputSchema.shape,
-    required: ['spreadsheetId', 'range', 'format'],
+    properties: {
+      accessToken: {
+        type: 'string',
+        description: 'OAuth access token from platform (provided by AgenticLedger platform from capability_tokens.token1 field)',
+      },
+      ...formatCellsInputSchema.omit({ accessToken: true }).shape,
+    },
+    required: ['accessToken', 'spreadsheetId', 'range', 'format'],
   },
 };
 
@@ -85,7 +92,7 @@ export async function formatCellsHandler(input: any): Promise<ToolResponse> {
     input.format = parseJsonInput(input.format, 'format');
 
     const validatedInput = formatCellsInputSchema.parse(input) as FormatCellsInput;
-    const sheets = await getAuthenticatedClient();
+    const sheets = createSheetsClient(input.accessToken);
 
     // Extract sheet name and get sheet ID
     const { sheetName, range: cleanRange } = extractSheetName(validatedInput.range);
